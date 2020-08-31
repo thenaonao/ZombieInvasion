@@ -28,7 +28,7 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 	SetPlayerProperty(TRUE, OFF, PROP_TOTALLYFROZEN);
 	SetMapType(type);
 	
-	while(true){
+	while(true){ //yes , again , i know, this is using bandwidth, but, im lazy, and i dont think it  really impact the state of the game because it didnt started, but this is surely wasting bandwidth
 		if(PlayerCounter()<2){
 			HudMessageBold(s:"This Game needs at least 2 players";HUDMSG_FADEOUT,300,CR_WHITE,0.5,0.6,1.0,1.0);
 			SecureTime = ResetSecureTime;
@@ -39,7 +39,11 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 				delay(35*5);
 				ResetMap();
 			}
-			if(type==2){SetMinuteToTimer(ZombieImmuneTime);}
+			if(type==2){
+				SetMinuteToTimer(ZombieImmuneTime);
+				Acs_Execute(801,0,ZombieImmuneTime); //Yes this is a bit messy, First time doing C/S.... so yea
+													//Updating values for client from the server.... Didnt took that in account when making the game logic, making this a bit messy but heh. XD
+			}
 			
 			
 			if(SecureTime>0){		
@@ -145,6 +149,9 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 				break;
 			}else{
 				addSecondsToTimer(-1);
+			}
+			if(timerSec%60==0){
+				Acs_execute(803,0,timerSec);
 			}
 		}
 		delay(35);
@@ -360,8 +367,9 @@ script 709(int a, int b,int c)CLIENTSIDE{
 	//UpdateInternValue(a,b,c);
 }
 */
+
 // HUD SCRIPT SETUP -> To update  value, call script 708
-script 710 (void){
+script 710 (void) NET{
 	Acs_execute(800,0);
 }
 
