@@ -273,6 +273,8 @@ function void MakeZombie (int player,int first,int infector,int nomessage)
 		SetActivator(player);
 		if(GetMapType()==1){Teleport_NoFog(ZombieTID,1,0,0);}
 	}
+	
+	Acs_execute(804,0,GetHumanNumber(),GetZombieNumber());
 }
 
 function void StarterMap(int typeV0, int MapStateV1,int CountdownV2, int ZimmunityV3)
@@ -511,6 +513,17 @@ function int GetZombieNumber(void){
 	return ZombieNumber;
 }
 
+//***** Specially for client side, else server use the counter to update those values
+function void SetHumanNumber(int a){
+	HumanNumber=a;
+}
+
+function void SetZombieNumber(int a){
+	ZombieNumber=a;
+}
+//*****
+
+
 function int GetDeathState(int a){
 	return IsDead[a];
 }
@@ -593,6 +606,10 @@ function void SetInfectMsgType(int a){
 
 function void addSecondsToTimer(int a){
 		TimerSeconds+=a;
+}
+
+function void setSecondsToTimer(int a){
+	TimerSeconds=a;
 }
 
 function void SetMinuteToTimer(int a){
