@@ -48,7 +48,7 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 			
 			if(SecureTime>0){		
 				SetFont("SMALLFONT");
-				HudMessageBold(s:"The Game Starts in ",d:SecureTime,s:" ...";HUDMSG_FADEOUT,300,CR_WHITE,0.5,0.85,1.0,1.0);
+				HudMessageBold(s:"A Zombie will be picked in ",d:SecureTime,s:" ...";HUDMSG_FADEOUT,300,CR_WHITE,0.5,0.85,1.0,1.0);
 				SecureTime--;
 			}else{break;}
 		}
@@ -174,14 +174,13 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 		
 	}
 	
-	int Laura;
-	int Ashley;
-	int CoolDude=Random(0,PlayerCount()-1);
+	int Ashley;//ITs a bool to check if someone got rewarded or not.
+	int CoolDude=Random(0,PlayerCount()-1);//GET a player ID to then get his TID
 	for(int JeanPaul=0;JeanPaul<64;JeanPaul++){
 		if(GetSafePlayer(CoolDude==1)){
 			Ashley=1;
 			AwardPlayer(CoolDude);
-			Log(s:"Tried Awarding");
+			Log(s:"Tried Awarding"); //TODO [REMOVE] SOME DEBUGS
 			Log(n:CoolDude+1);
 			break;
 		}
@@ -189,8 +188,8 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 	}
 	
 	if(!Ashley){
-		for(int Kassandra=0;Kassandra<64;Kassandra++){
-			if(GetSafePlayer(Kassandra)==1){
+		for(int Kassandra=0;Kassandra<64;Kassandra++){ //If they are safe, reward them 
+			if(GetSafePlayer(Kassandra)==1){ //TODO Check if its accurate
 				AwardPlayer(Kassandra);
 				Log(s:"Tried Awarding 2");
 				Log(n:Kassandra+1);
@@ -350,7 +349,7 @@ Script 707 (void)
 			TakeInventory("IsBurning", 1);
 			terminate;
 		}
-		Thing_Damage(0, 10+Random(0,8), 0);
+		Thing_Damage(0, 10+Random(0,10), 0);
 		ThrustThingZ(0,1,1,0);
 		SpawnProjectile(0, "ZIFlame", 0, 0, 0, 0, 0);
 		Delay(18);
@@ -646,7 +645,7 @@ script 721 (int ZombieImmuneTime,int type) {
 		delay(35);
 	}
 }
-
+//(2020.11.23)Bonus item script
 script 722 (int who,int type){
 	int r1 = Random(0,100); //Rarity
 	int r2 = Random(0,100); //Random inside the rarity
@@ -842,6 +841,7 @@ script 722 (int who,int type){
 	}
 }
 
+//(2020.11.23) Leader symbol
 script 723 OPEN{
 	int j;
 	int x,y,z;
@@ -883,6 +883,7 @@ script 723 OPEN{
 	}
 } 
 
+//(2020.11.23) Give the killer a bonus box
 script 724(int DEADTID){
 	incrementStats(2,DEADTID);
 	if(!SetActivatorToTarget(0)){terminate;} //If we cant get the killer as activator
