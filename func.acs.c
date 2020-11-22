@@ -872,8 +872,3 @@ function void resetStats(void){
 		nbrInfection[i] =0;
 	}
 }
-
-
-
-
-
