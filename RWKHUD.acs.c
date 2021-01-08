@@ -23,6 +23,9 @@ script 801(int IGameState,int IGameType) CLIENTSIDE{
 			HudMessageBold(s:"This Game needs at least 2 players";HUDMSG_FADEOUT,300,CR_WHITE,0.5,0.6,1.0,1.0);
 			break;
 		case 0:
+			if(GetTimePickingZombie()<0){
+			RequestScriptPuke(901,0);
+			}
 			HudMessageBold(s:"A Zombie will be picked in ",d:GetTimePickingZombie(),s:" ...";HUDMSG_FADEOUT,300,CR_WHITE,0.5,0.85,1.0,1.0);
 			break;
 		case 1:
@@ -63,8 +66,6 @@ script 802 (int CompressedTID,int y,int type) CLIENTSIDE{
 	infected=CompressedTID-(infector<<8);
 	infector++;//For n: ->(1;64) and here we have (0;63)
 	infected++;
-	log(s:"Infected: ",d:infected);
-	log(s:"Infector: ",d:infector);
 	int x= 0.5;	
 	if(type==1){	
 		HudMessageBold(s:"\cJ",n:infected,s:" \cGgot infected by a \cMVirus!";HUDMSG_FADEOUT,0,CR_UNTRANSLATED,x,y,3.0,1.0);
