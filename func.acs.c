@@ -21,6 +21,9 @@ int ZChanceFactor[64];
 
 int TimerSeconds;
 
+int hasSuicided[64];
+int healthBeforeSuicide[64];
+
 //For stats (future)
 int nbrZMKilled[64]; //Stores a value for each player , counts zm kills
 int nbrZMDeath[64]; //How many times the same zombies died ? XD
@@ -121,26 +124,6 @@ function void EndMap(int killfeature)
 				SetPlayerProperty(1, 1, PROP_TOTALLYFROZEN);
 			}
 		}
-	}
-}
-
-function void InfectMessage(int x,int y,int id,int infected,int type,int infector){
-	SetFont("SMALLFONT");
-	infected-=(PLAYER_ID-1);
-	infector-=(PLAYER_ID-1);
-	
-	if(type==1){	
-		HudMessageBold(s:"\cJ",n:infected,s:" \cGgot infected by a \cMVirus!";HUDMSG_FADEOUT,350+id,CR_UNTRANSLATED,x,y,3.0,1.0);
-	}else if(type==2){
-		HudMessageBold(s:"\cGA bunch of \cMZombie \cGappeared!";HUDMSG_FADEOUT,355,CR_UNTRANSLATED,x,y,3.0,1.0);
-	}
-	else if(type==3){
-		HudMessageBold(s:"\cM",n:infector,s:" \cGHas infected \cJ ",n:infected;HUDMSG_FADEOUT,356+id,CR_UNTRANSLATED,x,y,3.0,1.0);
-	}
-	else if(type==4){
-		HudMessageBold(s:"\cJ",n:infected,s:" \cGGot infected mysteriously...";HUDMSG_FADEOUT,300+id,CR_UNTRANSLATED,x,y,3.0,1.0);
-	}else{
-	
 	}
 }
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -285,23 +268,51 @@ function int abs(int a)
 	return a;
 }
 
-
+int randTab[100];
 function void AwardPlayer(int who){
 	if(who<PLAYER_ID){
 		who+=PLAYER_ID; //Auto convert if we get a playernumber instead of TID
 	}
-	int CrateRandom = (random(0, 400)*0.25)>>16;
+	for(int i=0;i<100;i++){
+		if(i<50){
+			randTab[i]=1;
+		}else if(i<65){
+			randTab[i]=2;
+		}else if(i<80){
+			randTab[i]=3;
+		}else if(i<95){
+			randTab[i]=4;
+		}else{
+			randTab[i]=5;
+		}
+	}
 	
-	if(CrateRandom>=50){ //Common
-		GiveActorInventory(who,"CommonBonusCrate",1);
-	}else if(CrateRandom>=65){//Weapon
-		GiveActorInventory(who,"WeaponBonusCrate",1);
-	}else if(CrateRandom>=80){//Support
-		GiveActorInventory(who,"SupportBonusCrate",1);
-	}else if(CrateRandom>=95){
-		GiveActorInventory(who,"RareBonusCrate",1);
-	}else{
-		GiveActorInventory(who,"UltimateBonusCrate",1);
+	for(int j=0;j<100;j++){
+		int mem=random(0,99);
+		int temp=randTab[j];
+		randTab[j]=randTab[mem];
+		randTab[mem]=temp;		
+	}
+	
+	int CrateRandom = random(0,99);
+	
+	int returnedRandom=randTab[CrateRandom];
+	switch(returnedRandom){
+		case 1:
+			GiveActorInventory(who,"CommonBonusCrate",1);
+			break;
+		case 2:
+			GiveActorInventory(who,"WeaponBonusCrate",1);
+			break;
+		case 3:
+			GiveActorInventory(who,"SupportBonusCrate",1);
+			break;
+		case 4:
+			GiveActorInventory(who,"RareBonusCrate",1);
+			break;
+		case 5:
+			GiveActorInventory(who,"UltimateBonusCrate",1);
+			break;
 	}
 }
 
@@ -402,9 +413,9 @@ function void cleanInventory(int TypeOfWork,int player){
 			TakeActorInventory(i+PLAYER_ID,"ZIRifleAmmo",35);
 			TakeActorInventory(i+PLAYER_ID,"ZIGrenade",1);
 			TakeActorInventory(i+PLAYER_ID,"ZIExpGrenade",1);
-			//TakeActorInventory(i+PLAYER_ID,"HandGrenadeAmmo",2);
-			//TakeActorInventory(i+PLAYER_ID,"HandExpGrenadeAmmo",2);	
-			
+			TakeActorInventory(i+PLAYER_ID,"HandGrenadeAmmo",2);
+			TakeActorInventory(i+PLAYER_ID,"HandExpGrenadeAmmo",2);	
+			TakeActorInventory(i+PLAYER_ID,"Armor",10000);	
 			//Zombie Stuff
 			TakeActorInventory(i+PLAYER_ID,"IsZombie",1); 
 			TakeActorInventory(i+PLAYER_ID,"ZombieImmune",1);
@@ -437,6 +448,7 @@ function void cleanInventory(int TypeOfWork,int player){
 		}
 	}else{
 			//Human Stuff
+			TakeActorInventory(player+PLAYER_ID,"Armor",10000);	
 			TakeActorInventory(player+PLAYER_ID,"IsHuman",1); 
 			TakeActorInventory(player+PLAYER_ID,"HumanImmune",1);
 			TakeActorInventory(player+PLAYER_ID,"HasPanicked",1);
@@ -449,8 +461,8 @@ function void cleanInventory(int TypeOfWork,int player){
 			TakeActorInventory(player+PLAYER_ID,"ZIRifleAmmo",35);
 			TakeActorInventory(player+PLAYER_ID,"ZIGrenade",1);
 			TakeActorInventory(player+PLAYER_ID,"ZIExpGrenade",1);
-			//TakeActorInventory(i+PLAYER_ID,"HandGrenadeAmmo",2);
-			//TakeActorInventory(i+PLAYER_ID,"HandExpGrenadeAmmo",2);	
+			TakeActorInventory(player+PLAYER_ID,"HandGrenadeAmmo",2);
+			TakeActorInventory(player+PLAYER_ID,"HandExpGrenadeAmmo",2);	
 			
 			//Zombie Stuff
 			TakeActorInventory(player+PLAYER_ID,"IsZombie",1); 
@@ -487,6 +499,7 @@ function void cleanInventory(int TypeOfWork,int player){
 function void inventoryStarter(int TypeOfWork,int player){
 	if(TypeOfWork==0){
 		for(int i=0;i<64;i++){
+			GiveActorInventory(i+PLAYER_ID,"GreenArmor",1);
 			GiveActorInventory(i+PLAYER_ID,"IsHuman",1);
 			GiveActorInventory(i+PLAYER_ID,"HumanImmune",1);
 			GiveActorInventory(i+PLAYER_ID,"ZIGrenade",1);
@@ -501,6 +514,7 @@ function void inventoryStarter(int TypeOfWork,int player){
 			GiveActorInventory(i+PLAYER_ID,"ZIRifleAmmo",35);
 		}
 	}else{
+			GiveActorInventory(player+PLAYER_ID,"GreenArmor",1);
 			GiveActorInventory(player+PLAYER_ID,"IsHuman",1);
 			GiveActorInventory(player+PLAYER_ID,"HumanImmune",1);
 			GiveActorInventory(player+PLAYER_ID,"ZIGrenade",1);
@@ -667,9 +681,7 @@ function void MakeZombie (int player,int first,int infector,int nomessage)
 				HealthToGive=Clip(ZombieMinimumHealth,ZombieMaximumHealth, ((HealthInfector+ZombieMaximumHealth)/3)+random(-800,800));
 			}
 		}
-		
-		//SetActorProperty(player,APROP_Health,500); 
-		ACS_ExecuteAlways(725,0,player,HealthToGive); 
+
 		
 		if(first==0 && nomessage==0){
 			acs_executeAlways(706,0,player,checkActorInventory(player,"HandGrenadeAmmo"),0);
@@ -678,6 +690,16 @@ function void MakeZombie (int player,int first,int infector,int nomessage)
 			}
 		}
 		cleanInventory(1,player-PLAYER_ID);
+				
+		//SetActorProperty(player,APROP_Health,500); 
+		if(getSuicideState(player)==1){
+			HealthToGive=getHealthBeforeSuicide(player);
+			setSuicideState(player,0);
+		}
+		
+		ACS_ExecuteAlways(725,0,player,HealthToGive); 
+		
+		
 		TakeActorInventory(player,"ZISuperShotgun",1);
 		TakeActorInventory(player,"ZISniper",1);
 		TakeActorInventory(player,"ZIRocketLauncher",1);
@@ -721,7 +743,7 @@ function void MakeZombie (int player,int first,int infector,int nomessage)
 		if(nomessage==1){
 			type=0;
 		}
-		if(nomessage==1||first==1){
+		if(first==1){
 			SetActivator(player);
 			if(GetMapType()==1){Teleport_NoFog(ZombieTID,1,0,0);}
 			SetActivator(-1);//go back to server
@@ -742,4 +764,20 @@ function void MakeZombie (int player,int first,int infector,int nomessage)
 			incrementator=0;
 		}
 	}
+}
+
+function void setSuicideState(int who,int state){
+	hasSuicided[who-PLAYER_ID]=state;
+}
+
+function int getSuicideState(int who){
+	return hasSuicided[who-PLAYER_ID];
+}
+
+function void setHealthBeforeSuicide(int who,int nbr){
+	healthBeforeSuicide[who-PLAYER_ID]=nbr;
+}
+
+function int getHealthBeforeSuicide(int who){
+	return healthBeforeSuicide[who-PLAYER_ID];
 }
