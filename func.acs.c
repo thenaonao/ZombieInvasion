@@ -24,6 +24,8 @@ int TimerSeconds;
 int hasSuicided[64];
 int healthBeforeSuicide[64];
 
+int winState=0;
+
 //For stats (future)
 int nbrZMKilled[64]; //Stores a value for each player , counts zm kills
 int nbrZMDeath[64]; //How many times the same zombies died ? XD
@@ -31,7 +33,7 @@ int nbrInfection[64]; //How many infect by 1 person xD vvhat else to say ?
 
 function int ZombieCounter (void){ 
 	int number; 
-	for(int i=0;i<64;i++){
+	for(int i=0;i<MAXPLAYER;i++){
 		if(PlayerInGame(i) && CheckActorInventory(PLAYER_ID+i, "IsZombie")&& GetAliveState(i)==1){
 			number++;
 		}
@@ -41,7 +43,7 @@ function int ZombieCounter (void){
 } 
 function int HumanCounter (void){
 	int number;
-	for(int i=0;i<64;i++){
+	for(int i=0;i<MAXPLAYER;i++){
 		if(PlayerInGame(i) && CheckActorInventory(PLAYER_ID+i, "IsHuman")){
 			number++;
 		}
@@ -52,7 +54,7 @@ function int HumanCounter (void){
 
 function int PlayerCounter(void){
 	int number;
-	for(int i=0;i<64;i++){
+	for(int i=0;i<MAXPLAYER;i++){
 		if(PlayerInGame(i)){
 			number++;
 		}
@@ -91,29 +93,21 @@ function void EndMap(int killfeature)
 	int tester=0;
 	//IF ESCAPE
 	if(GetMapType()==1){
-		SetGameState(3);
+		Acs_ExecuteAlways(903,0,3,3);
 		if(killfeature==1){
-			for(int i=0;i<64;i++){
+			for(int i=0;i<MAXPLAYER;i++){
 				if(PlayerInGame(i)){
 					if(GetSafePlayer(i)==0){
 						//SetActivator(i+PLAYER_ID);
 						Thing_Damage(i+PLAYER_ID, 99999, 19);
-						SetPlayerProperty(1, 1, PROP_TOTALLYFROZEN);
+						
 					}
 				}
 			}
 		}
-		else{
-			for(int j=0;j<64;j++){
-				if(PlayerInGame(j)){
-					//SetActivator(j+PLAYER_ID);
-					SetPlayerProperty(1, 1, PROP_TOTALLYFROZEN);
-				}
-			}
-		}
 	}else if(GetMapType()==2){
-		SetGameState(4);
-		for(int k=0;k<64;k++){
+		Acs_ExecuteAlways(903,0,3,4);
+		for(int k=0;k<MAXPLAYER;k++){
 			if(PlayerInGame(k)){
 				if(killfeature==1){
 					//SetActivator(k+PLAYER_ID);
@@ -121,7 +115,7 @@ function void EndMap(int killfeature)
 							Thing_Damage(k+PLAYER_ID, 99999, 19);;
 						}
 				}
-				SetPlayerProperty(1, 1, PROP_TOTALLYFROZEN);
+				
 			}
 		}
 	}
@@ -200,7 +194,7 @@ function int GetPlayerTID2(void){
 
 function void GiveStamina(void)
 {
-	for(int i=0;i<64;i++){
+	for(int i=0;i<MAXPLAYER;i++){
 		if(CheckActorInventory(i+PLAYER_ID,"IsHuman")== 1 && CheckActorInventory(i+PLAYER_ID,"HasPanicked")== 0){
 			GiveActorInventory(i+PLAYER_ID,"StaminaSprint",4);
 		}
@@ -372,7 +366,7 @@ function int getStats(int what,int who){
 
 //Flush everything
 function void resetStats(void){
-	for(int i=0;i<64;i++){
+	for(int i=0;i<MAXPLAYER;i++){
 		nbrZMKilled[i] =0;
 		nbrZMDeath[i] =0;
 		nbrInfection[i] =0;
@@ -399,7 +393,7 @@ function int GetTimePickingZombie(void){
 //Clean Everything \Keep the bonuses
 function void cleanInventory(int TypeOfWork,int player){
 	if(TypeOfWork==0){
-		for(int i=0;i<64;i++){
+		for(int i=0;i<MAXPLAYER;i++){
 			//Human Stuff
 			TakeActorInventory(i+PLAYER_ID,"IsHuman",1); 
 			TakeActorInventory(i+PLAYER_ID,"HumanImmune",1);
@@ -498,7 +492,7 @@ function void cleanInventory(int TypeOfWork,int player){
 
 function void inventoryStarter(int TypeOfWork,int player){
 	if(TypeOfWork==0){
-		for(int i=0;i<64;i++){
+		for(int i=0;i<MAXPLAYER;i++){
 			GiveActorInventory(i+PLAYER_ID,"GreenArmor",1);
 			GiveActorInventory(i+PLAYER_ID,"IsHuman",1);
 			GiveActorInventory(i+PLAYER_ID,"HumanImmune",1);
@@ -644,9 +638,9 @@ function void ZombieStarter (void)
 	int NbrOfZombieNeeded=1; //Number of zombie choosen for a number of Human
 	int PlayerToZombify;//TID of player to zombify
 	
-	while(NbrOfPlayers>=12){
+	while(NbrOfPlayers>=10){
 		NbrOfZombieNeeded++;
-		NbrOfPlayers-=12;
+		NbrOfPlayers-=10;
 	}	
 	SetTotalZombieAtStart(Clip(1,8,NbrOfZombieNeeded));
 	
@@ -724,6 +718,7 @@ function void MakeZombie (int player,int first,int infector,int nomessage)
 		
 		
 		//Effect todo
+		Playsound(player,"Player/Infected",5);
 		HumanCounter();//So we update those value server side, so we can send it after to the client via 903
 		ZombieCounter();
 		SetFont("SMALLFONT");
@@ -756,7 +751,7 @@ function void MakeZombie (int player,int first,int infector,int nomessage)
 		int compressedTID;//contain both TID
 		compressedTID=(infector-PLAYER_ID);
 		compressedTID=compressedTID<<8;
-		compressedTID+=player-PLAYER_ID;
+		compressedTID+=(player-PLAYER_ID);
 		
 		ACS_ExecuteAlways(802,0,compressedTID,y,type);
 		incrementator++;
@@ -780,4 +775,20 @@ function void setHealthBeforeSuicide(int who,int nbr){
 
 function int getHealthBeforeSuicide(int who){
 	return healthBeforeSuicide[who-PLAYER_ID];
+}
+
+function int getWinState(void){
+	return winState;
+}
+function void setWinState(int a){
+	winState=a;
+}
+
+int countDownStatus=0;
+function int getCountDownStatus(void){
+	return countDownStatus;
+}
+
+function void setCountDownStatus(int a){
+	countDownStatus=a;
 }
