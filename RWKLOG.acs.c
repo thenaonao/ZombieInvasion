@@ -9,6 +9,7 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 	Acs_ExecuteAlways(903,0,1,SecureTime);//Send/Update Time Before Picking A Zombie
 	SetMapState(0);
 	Acs_ExecuteAlways(903,0,3,-1);// -1 to GameState
+	Acs_ExecuteAlways(903,0,12,0);//Make sure  the timer doesnt countdown
 	//---------------------Check if the header is correct---------------------//
 	if(type!=1 && type!=2){
 		printbold(s:"Bad Game Configuration");
@@ -71,11 +72,11 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 		}
 	}
 	delay(5);
-	SetGameState(1);
+	Acs_ExecuteAlways(903,0,3,1);
 	ZombieStarter();//After this, normally, we have choosen our zombies
+	delay(5);//Escape weird priority ass script vs func acs
 	
-	
-	SetGameState(2);
+	Acs_ExecuteAlways(903,0,3,2);
 
 	Delay(70);
 	//So it doesnt call the same function multiple times in a loop
@@ -87,6 +88,7 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 	int nbrHum = HumanCounter();
 	int nbrZom = ZombieCounter();
 	//MAIN GAME LOGIC
+	Acs_ExecuteAlways(903,0,12,1);
 	while(GetGameState()!=4){
 		GiveStamina();
 		timerSec = GetTimerSeconds();
@@ -105,9 +107,11 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 			}
 			*/
 			if(nbrHum==0){
-				SetGameState(4);
-				printbold(s:"Zombie Victory");
+				Acs_ExecuteAlways(903,0,3,4);
+				//printbold(s:"Zombie Victory");//In this case, If the round is running, but all humans rq or left
 				//We need to send to the Clients to display
+				//setWinState(2);
+				Acs_ExecuteAlways(903,0,11,2);
 				EndMap(0);
 				break;
 			}
@@ -117,8 +121,10 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 			}
 			if(nbrZom==0){
 				if(zmNbrTimer>8){
-					PrintBold(s:"Human Victory, Zombie RQ!!");
+					//PrintBold(s:"Human Victory, Zombie RQ!!");
 					//We need to send to the Clients to display
+					//setWinState(1);
+					Acs_ExecuteAlways(903,0,11,1);
 					EndMap(0);
 					break;
 				}
@@ -127,8 +133,10 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 		}
 		if(currentMapType==2){ //ZR
 			if(nbrHum==0){
-				printbold(s:"Zombie Victory");
+				//printbold(s:"Zombie Victory");
 				//We need to send to the Clients to display
+				//setWinState(2);
+				Acs_ExecuteAlways(903,0,11,2);
 				EndMap(0);
 				break;
 			}
@@ -142,21 +150,32 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 			//So, if  there is no zombie (like he rq or something...)
 			if(nbrZom==0){
 				if(zmNbrTimer>5){
-					PrintBold(s:"Human Victory");
+					//PrintBold(s:"Human Victory");
 					//We need to send to the Clients to display
+					//setWinState(1);
+					Acs_ExecuteAlways(903,0,11,1);
 					EndMap(0);
 					break;
 				}
 				zmNbrTimer++;
 			}else{zmNbrTimer=0;}
 			if(timerSec==0){
+				//setWinState(1);
+				Acs_ExecuteAlways(903,0,11,1);
 				EndMap(1);
 				//kill zm maybe ?
-				printbold(s:"Human Victory");
+				//printbold(s:"Human Victory");
 				//We need to send to the Clients to display
 				break;
 			}else{
-				ACS_ExecuteAlways(903,0,9);//Decrement the timer
+				//ACS_ExecuteAlways(903,0,9);//Decrement the timer
+				//Replaced by (903,0,12);
+				//It saves bandwidth as we parse only once a boolean
+				//Instad of parsing each seconds a new seconds to display
+				
+				//So we just need to decrement it only server side, as its now
+				//async
+				DecrementTimer();
 			}
 			if(timerSec%60==0 && ConsolePlayerNumber() == -1){
 				ACS_ExecuteAlways(900,0,10,GetTimerSeconds());//Sends to the client the actual timer if there's a desync or whatever
@@ -167,6 +186,7 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 		delay(35);
 	} 
 	
+	
 	//So we are obligated to do that here, and not in the loop, because, if everyone died, lets say from the end, it will simply
 	//trigger a human/zombie win, but actually, everybody died, also GameState=4 so everyone is freezed, so its better to do that now
 	//after we exited while block
@@ -175,15 +195,27 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 			delay(5);
 		}
 		if(ZombieCounter()==0 && HumanCounter()==0){
+			/* Do nothing
 			Printbold(s:"uh? Everyone died ?????");
+			setWinState(-1);
 			delay(35*2);
-			ResetMap();
+			ResetMap();*/
 		}else if(ZombieCounter()==0){
 			PrintBold(s:"Human Victory");
+			//setWinState(1);
+			Acs_ExecuteAlways(903,0,11,1);
 		}else{
 			PrintBold(s:"Zombie Victory");
+			//setWinState(2);
+			Acs_ExecuteAlways(903,0,11,2);
 		}
+		Acs_ExecuteAlways(903,0,3,4);
 	}
+	
+	//NOW WE FREEZE EVERYBODY
+	SetPlayerProperty(TRUE, ON, PROP_TOTALLYFROZEN);//(2021.01.19) so The round should be ended by now, so we freeze everybody
+	//Dead ppl by not reaching the end should respawn with the frozen flag.
+	
 	
 	//Reward player who finished a ZF map.
 	int BRewarded;//ITs a bool to check if someone got rewarded or not.
@@ -211,16 +243,15 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 	}
 	
 	
-	
-	//NOW WE FREEZE EVERYBODY
-	SetPlayerProperty(TRUE, ON, PROP_TOTALLYFROZEN);
 	for(int w=0;w<64;w++){
 		SetActorProperty(w+PLAYER_ID,APROP_Invulnerable,ON);
 		SetActorProperty(w+PLAYER_ID, APROP_SPEED, 1.0);
 	}
-	delay(35*5);
+	delay(35*8);
+	Acs_ExecuteAlways(903,0,12,0);//Make sure the status is set to 0
 	CleanInventory(0,0);
 	resetStats();
+	setWinState(0);
 	Exit_Normal(0);
 	
 }
@@ -357,7 +388,7 @@ Script 707 (void)
 			TakeInventory("IsBurning", 1);
 			terminate;
 		}
-		if(GetAliveState(GetPlayerTID2())){
+		if(GetAliveState(GetPlayerTID2()-PLAYER_ID)==0){
 			terminate;
 		}
 		Thing_Damage(0, 10+Random(0,10), 0);
@@ -434,6 +465,9 @@ Script 716 (void) {
 		TakeInventory("StaminaSprint", 60);
 		Delay(10);
 	}//If we break out of the loop, then it means ppl has no more stamina or dont sprint anymore
+	if(CheckInventory("IsHuman")){
+		SetActorProperty(0, APROP_Speed, 1.0);
+	}
 	if(CheckInventory("StaminaSprint")<=20){
 		GiveInventory("IsOutOfBreath",1);
 		delay(7);
@@ -447,9 +481,6 @@ Script 716 (void) {
 		delay(7);
 		TakeInventory("IsOutOfBreath",1);
 		
-	}
-	if(CheckInventory("IsHuman")){
-		SetActorProperty(0, APROP_Speed, 1.0);
 	}
 }
 //Panic script
@@ -520,7 +551,7 @@ Script 720 (void) NET {
 			if(CheckActorInventory(P_id,"TPChecker") > 0){
 				print(s:"you will be teleported in 3 seconds");
 				delay(35*3);
-				TeleportOther(P_id,200,1);
+				TeleportOther(P_id,ZombieTID,1);
 				TakeActorInventory(P_id,"TPChecker",1);
 				Print(s:"You now have ",d:CheckActorInventory(P_id,"TPChecker"),s:" TP left.");
 			}else{
@@ -530,6 +561,7 @@ Script 720 (void) NET {
 			print(s:"you will be teleported in 3 seconds");
 			delay(35*3);
 			Teleport_NoFog(ZombieTID+GetMapState(),1,0,0);
+			setSafePlayer(ActivatorTID(),0);
 		}
 	}else{
 		Print(s:"Humans cannot tp...");
@@ -566,7 +598,6 @@ script 722 (int who,int type){
 	int newRandom = random(0,99);
 	
 	int rollRandom=randArray[newRandom];
-	log(d:rollRandom);
 	if(CheckActorInventory(who,"IsZombie")==1){
 		switch(type){
 			case 1:
@@ -891,6 +922,7 @@ script 726(int tid,int health)CLIENTSIDE{
 //Suicide Script
 script 727 (void) NET{
 	if(CheckActorInventory(ActivatorTID(),"isZombie")==1){
+		setSafePlayer(ActivatorTID(),0);
 		setSuicideState(ActivatorTID(),1);
 		setHealthBeforeSuicide(ActivatorTID(),getActorProperty(ActivatorTID(),APROP_HEALTH));
 	}
@@ -904,19 +936,40 @@ Script 728 (void) NET {
 	int P_id = PLAYER_ID+PlayerNumber();
 	if(CheckActorInventory(P_id,"IsZombie")==1){
 		if(GetMapType()==2){//If ZR
-			Print(s:"There is not an escape map!!");
+			Print(s:"This is not an escape map!!");
 		}
 		else{ //IF ZF
 			print(s:"you will be teleported in 3 seconds");
 			delay(35*3);
 			Teleport_NoFog(ZombieTID,1,0,0);
+			setSafePlayer(P_id,0);
 		}
 	}else{
 		Print(s:"Humans cannot tp to the start...");
 	}
 }
 
-
+script 729(void)NET{
+	int IP_ID=ActivatorTID();
+	int type=random(0,4);
+	switch(type){
+		case 0:
+			PlaySound(IP_ID,"Player/Taunt/OMG",6,1.0,0,1.0);
+			break;
+		case 1:
+			PlaySound(IP_ID,"Player/Taunt/Stop",6,1.0,0,1.0);
+			break;
+		case 2:
+			PlaySound(IP_ID,"Player/Taunt/Shit",6,1.0,0,1.0);
+			break;
+		case 3:
+			PlaySound(IP_ID,"Player/Taunt/FuckYou",6,1.0,0,1.0);
+			break;
+		case 4:
+			PlaySound(IP_ID,"Player/Taunt/Surprise",6,1.0,0,1.0);
+			break;
+	}
+}
 
 
 
@@ -974,11 +1027,21 @@ script 902(int whatToUpdate,int Value)CLIENTSIDE{
 			break;
 		case 9:
 			if(isNetworkGame()){
-				DecrementTimer();
+				DecrementTimer();//Not a good way to do that.....XD
+				//TBH i should parse a boolean to the client, and the client
+				//Should anticipate the countdown of the round.
+				//So the client is needing information from the server, constantly....
+				//Too bad!
 			}
 			break;
 		case 10:
 			setSecondsToTimer(Value);
+			break;
+		case 11:
+			setWinState(Value);
+			break;
+		case 12:
+			setCountDownStatus(Value);
 			break;
 	}
 }
@@ -1017,6 +1080,12 @@ script 903(int whatToUpdate,int Value){
 			break;
 		case 10:
 			setSecondsToTimer(Value);
+			break;
+		case 11:
+			setWinState(Value);
+			break;
+		case 12:
+			setCountDownStatus(Value);
 			break;
 	}
 	Acs_executeAlways(902,0,WhatToUpdate,Value);	
