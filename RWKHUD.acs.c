@@ -101,7 +101,7 @@ script 802 (int CompressedTID,int y,int type) CLIENTSIDE{
 	else if(type==3){
 		HudMessageBold(s:"\cM",n:infector,s:" \cGHas infected \cJ ",n:infected;HUDMSG_FADEOUT,0,CR_UNTRANSLATED,x,y,3.0,1.0);
 	}
-	else if(type==4||type==0){
+	else if(type==4){
 		HudMessageBold(s:"\cJ",n:infected,s:" \cGGot infected mysteriously...";HUDMSG_FADEOUT,0,CR_UNTRANSLATED,x,y,3.0,1.0);
 	}else{
 		
@@ -116,7 +116,7 @@ script 803(void)CLIENTSIDE{
 
 script 804 ENTER CLIENTSIDE{
 	SetFont("CONFONT");
-	HudMessage(s:"\cgTool Tip: \n",s:tooltips[Random(0,7)];HUDMSG_FADEOUT,400,CR_WHITE,0.1,0.7,10.0,1.0,1.0,1.0);
+	HudMessage(s:"\cgPro Tip: \n",s:tooltips[Random(0,7)];HUDMSG_FADEOUT,400,CR_WHITE,0.1,0.7,10.0,1.0,1.0,1.0);
 }
 
 script 806(void) CLIENTSIDE{
