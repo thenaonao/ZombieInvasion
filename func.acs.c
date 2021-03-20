@@ -696,6 +696,10 @@ function void MakeZombie (int player,int first,int infector,int nomessage)
 		
 		TakeActorInventory(player,"ZISuperShotgun",1);
 		TakeActorInventory(player,"ZISniper",1);
+		TakeActorInventory(player,"ZIRailgun",1);
+		TakeActorInventory(player,"RGEnergy",7000);
+		TakeActorInventory(player,"ZIFlareGun",1);
+		TakeActorInventory(player,"ZIFireFlare",5);		
 		TakeActorInventory(player,"ZIRocketLauncher",1);
 		TakeActorInventory(player,"HandGrenadeAmmo",2);
 		TakeActorInventory(player,"HandExpGrenadeAmmo",2);
