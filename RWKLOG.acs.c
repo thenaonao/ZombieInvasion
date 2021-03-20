@@ -88,6 +88,7 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 	int nbrHum = HumanCounter();
 	int nbrZom = ZombieCounter();
 	//MAIN GAME LOGIC
+	Acs_Execute(710,0);
 	Acs_ExecuteAlways(903,0,12,1);
 	while(GetGameState()!=4){
 		GiveStamina();
@@ -239,6 +240,11 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 				Log(n:z+1);
 				break;
 			}
+		}
+	}
+	for(int IPlayers=0;IPlayers<64;IPlayers++){
+		if(getSafePlayer(IPlayers)==1){
+			GiveActorInventory(IPlayers+PLAYER_ID,"SurvivorBonusCrate",1);
 		}
 	}
 	
@@ -407,6 +413,22 @@ script 708(int player,int infector,int type){
 
 script 709 OPEN NET CLIENTSIDE{
 	RequestScriptPuke(901,0);
+}
+
+//(2021.01.20)
+script 710 (void){
+	while(true){
+		for(int i=0;i<MAXPLAYER;i++){
+			if(CheckActorInventory(i+PLAYER_ID,"IsHuman")==1){
+				GiveActorInventory(i+PLAYER_ID,"RGEnergy",35);
+			}else if(CheckActorInventory(i+PLAYER_ID,"IsZombie")==1){
+				if(GetMapType()==2){ // 2021.02.23 if its not an escape map
+					GiveActorInventory(i+PLAYER_ID,"ZombieSecondaryCoolDown",35);
+				}
+			}
+		}
+		delay(35);
+	}
 }
 
 //Check if Zombie; then push in the direction
@@ -849,7 +871,56 @@ script 722 (int who,int type){
 					}
 				}
 				break;
-				
+			case 6:
+				TakeActorInventory(who,"SurvivorBonusCrate",1);
+				if(rollRandom<=10){
+					Print(s:"10% damage for 30 secondes!");
+					GiveActorInventory(who,"DamageBonus",1);
+				}else if(rollRandom<=20){
+					Print(s:"Fall reduction!");
+					GiveActorInventory(who,"BonusFallDamageProtection",1);
+				}else if(rollRandom<=30){
+					if(CheckActorInventory(who,"ZISuperShotGun")==1){
+						Print(s:"10% damage for 30 secondes!");
+						GiveActorInventory(who,"DamageBonus",1);
+					}else{
+						Print(s:"You found a SSG!");
+						GiveActorInventory(who,"ZISuperShotGun",1);
+					}
+				}else if(rollRandom<=40){
+					if(CheckActorInventory(who,"ZISniper")==1){
+						Print(s:"10% damage for 30 secondes!");
+						GiveActorInventory(who,"DamageBonus",1);
+					}else{
+						Print(s:"You found a sniper!");
+						GiveActorInventory(who,"ZISniper",1);
+					}
+				}else if(rollRandom<=50){
+					if(CheckActorInventory(who,"ZIRocketLauncher")==1){
+						Print(s:"10% damage for 30 secondes!");
+						GiveActorInventory(who,"DamageBonus",1);
+					}else{
+						Print(s:"You found a Rocket Launcher!");
+						GiveActorInventory(who,"ZIRocketLauncher",1);
+					}
+				}else if(rollRandom<=60){
+					Print(s:"Nothing! :c");
+				}else if(rollRandom<=70){
+					Print(s:"Nothing! :c");
+				}else if(rollRandom<=80){
+					Print(s:"Nothing! :c");
+				}else if(rollRandom<=90){
+					Print(s:"Nothing! :c");
+				}else{
+					if(rollRandom%2==0){
+						Print(s:"You found a Railgun??");
+						GiveActorInventory(who,"ZIRailgun",1);
+						GiveActorInventory(who,"RGEnergy",7000);
+					}else{
+						Print(s:"Nothing! :c");
+					}
+				}
+				break;
 		}
 	}
 }
@@ -951,7 +1022,7 @@ Script 728 (void) NET {
 
 script 729(void)NET{
 	int IP_ID=ActivatorTID();
-	int type=random(0,4);
+	int type=random(0,7);
 	switch(type){
 		case 0:
 			PlaySound(IP_ID,"Player/Taunt/OMG",6,1.0,0,1.0);
@@ -967,6 +1038,15 @@ script 729(void)NET{
 			break;
 		case 4:
 			PlaySound(IP_ID,"Player/Taunt/Surprise",6,1.0,0,1.0);
+			break;
+		case 5:
+			PlaySound(IP_ID,"Player/Taunt/TopKek",6,1.0,0,1.0);
+			break;
+		case 6:
+			PlaySound(IP_ID,"Player/Taunt/Aargh",6,1.0,0,1.0);
+			break;
+		case 7:
+			PlaySound(IP_ID,"Player/Taunt/Balls",6,1.0,0,1.0);
 			break;
 	}
 }
