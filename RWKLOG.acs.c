@@ -423,7 +423,11 @@ script 710 (void){
 				GiveActorInventory(i+PLAYER_ID,"RGEnergy",35);
 			}else if(CheckActorInventory(i+PLAYER_ID,"IsZombie")==1){
 				if(GetMapType()==2){ // 2021.02.23 if its not an escape map
-					GiveActorInventory(i+PLAYER_ID,"ZombieSecondaryCoolDown",35);
+					if(CheckActorInventory(i+PLAYER_ID,"IsMotherZombie")==1){
+						GiveActorInventory(i+PLAYER_ID,"ZombieSecondaryCoolDown",70);
+					}else{
+						GiveActorInventory(i+PLAYER_ID,"ZombieSecondaryCoolDown",35);
+					}
 				}
 			}
 		}
@@ -667,8 +671,11 @@ script 722 (int who,int type){
 				terminate;
 			case 1:
 				TakeActorInventory(who,"CommonBonusCrate",1);
-				if(rollRandom<=20){
+				if(rollRandom<=10){
 					print(s:"Nothing! :c");
+				}else if(rollRandom<=20){
+					print(s:"You got a Flaregun!");
+					GiveActorInventory(who,"ZIFlareGun",1);
 				}else if(rollRandom<=30){
 					if(CheckActorInventory(who,"StaminaSprint")>1000){
 						print(s:"Nothing! :c");
@@ -716,12 +723,15 @@ script 722 (int who,int type){
 				if(rollRandom<=5){
 					Print(s:"10% damage for 30 secondes!");
 					GiveActorInventory(who,"DamageBonus",1);
-				}else if(rollRandom<=15){
+				}else if(rollRandom<=10){
 					Print(s:"Additional molotov!");
 					GiveActorInventory(who,"HandGrenadeAmmo",1);
-				}else if(rollRandom<=25){
+				}else if(rollRandom<=20){
 					Print(s:"Additional Stunt grenade!");
 					GiveActorInventory(who,"HandExpGrenadeAmmo",1);
+				}else if(rollRandom<=25){
+					Print(s:"You got a FlareGun!");
+					GiveActorInventory(who,"ZIFlareGun",1);
 				}else if(rollRandom<=50){
 					if(CheckActorInventory(who,"ZISniper")==1){
 						Print(s:"10% damage for 30 secondes!");
@@ -969,7 +979,6 @@ script 724(int DEADTID){
 	incrementStats(2,DEADTID);
 	if(!SetActivatorToTarget(0)){terminate;} //If we cant get the killer as activator
 	int killer_TID = PlayerNumber()+PLAYER_ID;
-	int randomaward = Random(0,100);
 	if(CheckActorInventory(killer_TID,"IsZombie")==1){terminate;}
 	if(killer_TID == DEADTID || killer_TID==0){terminate;}//(2020.11.24) Maybe somehow he killed himself ? (2021.01.07) more fixe
 	if(GetGameState()>=3){terminate;} //prevent telefuck award at the end lol
