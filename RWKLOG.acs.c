@@ -141,12 +141,15 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 				EndMap(0);
 				break;
 			}
-			if(nbrZom>0 && nbrHum==1){ //heartbeat
+			/*if(nbrZom>0 && nbrHum==1){ //heartbeat OLD
 				for(int j =0;j<64;j++){
 					if(CheckActorInventory(j+PLAYER_ID,"IsHuman") && PlayerInGame(j)){
 						acs_execute(719,0,j,0,0);
 					}
 				}
+			}*/
+			if(nbrZom>nbrHum){ //HeartBeat NEW
+				acs_execute(719,0,nbrHum,nbrZom);
 			}
 			//So, if  there is no zombie (like he rq or something...)
 			if(nbrZom==0){
@@ -192,9 +195,10 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 	//trigger a human/zombie win, but actually, everybody died, also GameState=4 so everyone is freezed, so its better to do that now
 	//after we exited while block
 	if(currentMapType==1){
-		while(ZombieCounter()!=0 && HumanCounter()!=0){
+		delay(5);//(2021.04.19)Give enough time to kills unsafe players, so we can enter the good win state
+		/*while(ZombieCounter()!=0 && HumanCounter()!=0){ (2021.04.17)
 			delay(5);
-		}
+		}*/
 		if(ZombieCounter()==0 && HumanCounter()==0){
 			/* Do nothing
 			Printbold(s:"uh? Everyone died ?????");
@@ -202,11 +206,13 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 			delay(35*2);
 			ResetMap();*/
 		}else if(ZombieCounter()==0){
-			PrintBold(s:"Human Victory");
+			//PrintBold(s:"Human Victory");
 			//setWinState(1);
 			Acs_ExecuteAlways(903,0,11,1);
 		}else{
-			PrintBold(s:"Zombie Victory");
+			//PrintBold(s:"Zombie Victory");
+			//kils humans
+			killHumans();
 			//setWinState(2);
 			Acs_ExecuteAlways(903,0,11,2);
 		}
@@ -292,6 +298,7 @@ script 702 DEATH{
 	SetSafePlayer(PLAYER_ID+PlayerNumber(),0);//The player is not safe anymore, because he died, and surely will respawn as a zombie
 	thing_remove(500+PLAYER_ID+PlayerNumber()); //Remove The Leader Symbole...
 	SetDeathState(PlayerNumber());
+	ClearOnDeathSpecialItems(PlayerNumber());
 	Thing_ChangeTID(0, 0);//Put the corpse to tid 0
 }
 
@@ -563,12 +570,24 @@ Script 718 (void) CLIENTSIDE
 	}
 }
 //Heart beat script
+/* OLD SCRIPT
 script 719 (int who){
 	while(GetGameState() == 2 && CheckActorInventory(who+PLAYER_ID,"IsHuman")==1 && HumanCounter()==1){
 		PlaySound(who+PLAYER_ID,"Player/HeartBeat",4,1.0,0,1.0);
 		delay(35*3);
 	}
 }
+*/
+script 719(int hum,int zom){
+	for(int i=0;i<64;i++){
+			if(CheckActorInventory(i+PLAYER_ID,"IsHuman")==1){
+				PlaySound(i+PLAYER_ID,"Player/HeartBeat",4,1.0-fixeddiv(hum<<16,zom<<16),0,1.0);
+		}
+	}
+	delay(2*35);//prevent being called every tic (or so i though lol).
+}
+
+
 // Checkpoint tele
 Script 720 (void) NET {
 	int P_id = PLAYER_ID+PlayerNumber();
@@ -641,6 +660,9 @@ script 722 (int who,int type){
 			case 5:
 				TakeActorInventory(who,"UltimateBonusCrate",1);
 				break;
+			case 6:
+				TakeActorInventory(who,"SurvivorBonusCrate",1);
+				break;
 		}
 		if(rollRandom<=20){
 			Print(s:"You got Nothing!");
@@ -671,51 +693,42 @@ script 722 (int who,int type){
 				terminate;
 			case 1:
 				TakeActorInventory(who,"CommonBonusCrate",1);
-				if(rollRandom<=10){
-					print(s:"Nothing! :c");
-				}else if(rollRandom<=20){
-					print(s:"You got a Flaregun!");
+				if(rollRandom<=25){
+					Print(s:"Nothing! :c");
+				}else if(rollRandom<=35){
+					Print(s:"You found a flare gun!");
 					GiveActorInventory(who,"ZIFlareGun",1);
-				}else if(rollRandom<=30){
-					if(CheckActorInventory(who,"StaminaSprint")>1000){
-						print(s:"Nothing! :c");
-					}else{
-					print(s:"Stamina Restock!");
-					GiveActorInventory(who,"StaminaSprint",1200);
-					}
 				}else if(rollRandom<=40){
-					Print(s:"10% damage for 30 secondes!");
-					GiveActorInventory(who,"DamageBonus",1);
-				}else if(rollRandom<=50){
-					Print(s:"Additional molotov!");
-					GiveActorInventory(who,"HandGrenadeAmmo",1);
-				}else if(rollRandom<=60){
-					Print(s:"Additional Stunt grenade!");
-					GiveActorInventory(who,"HandExpGrenadeAmmo",1);
-				}else if(rollRandom<=70){
-					if(CheckActorInventory(who,"ZISniper")==1){
-						print(s:"Nothing! :c");
-					}else{
-					Print(s:"You found a sniper!");
-					GiveActorInventory(who,"ZISniper",1);
-					}
-				}else if(rollRandom<=80){
 					if(CheckActorInventory(who,"ZISuperShotGun")==1){
-						print(s:"Nothing! :c");
+						Print(s:"10% damage for 30 secondes!");
+						GiveActorInventory(who,"DamageBonus",1);
 					}else{
-					Print(s:"You found a SSG!");
-					GiveActorInventory(who,"ZISuperShotGun",1);
+						Print(s:"You found a SSG!");
+						GiveActorInventory(who,"ZISuperShotGun",1);
 					}
-				}else if(rollRandom<=90){
-					if(CheckActorInventory(who,"ZIRocketLauncher")==1){
-						print(s:"Nothing! :c");
+				}else if(rollRandom<=45){
+					if(CheckActorInventory(who,"ZISniper")==1){
+						Print(s:"10% damage for 30 secondes!");
+						GiveActorInventory(who,"DamageBonus",1);
 					}else{
+						Print(s:"You found a sniper!");
+						GiveActorInventory(who,"ZISniper",1);
+					}
+				}else if(rollRandom<=50){
 					Print(s:"You found a Rocket Launcher!");
 					GiveActorInventory(who,"ZIRocketLauncher",1);
-					}
+				}else if(rollRandom<=65){
+					Print(s:"Additional molotov!");
+					GiveActorInventory(who,"HandGrenadeAmmo",1);
+				}else if(rollRandom<=80){
+					Print(s:"Additional Stunt grenade!");
+					GiveActorInventory(who,"HandExpGrenadeAmmo",1);
+				}else if(rollRandom<=90){
+					Print(s:"10% damage for 30 secondes!");
+					GiveActorInventory(who,"DamageBonus",1);
 				}else{
-					Print(s:"Fall reduction!");
-					GiveActorInventory(who,"BonusFallDamageProtection",1);
+					Print(s:"Your crate got upgraded!");
+					GiveActorInventory(who,"RareBonusCrate",1);
 				}
 				break;
 			case 2:
@@ -723,39 +736,38 @@ script 722 (int who,int type){
 				if(rollRandom<=5){
 					Print(s:"10% damage for 30 secondes!");
 					GiveActorInventory(who,"DamageBonus",1);
-				}else if(rollRandom<=10){
+				}else if(rollRandom<=15){
 					Print(s:"Additional molotov!");
 					GiveActorInventory(who,"HandGrenadeAmmo",1);
-				}else if(rollRandom<=20){
+				}else if(rollRandom<=25){
 					Print(s:"Additional Stunt grenade!");
 					GiveActorInventory(who,"HandExpGrenadeAmmo",1);
-				}else if(rollRandom<=25){
-					Print(s:"You got a FlareGun!");
-					GiveActorInventory(who,"ZIFlareGun",1);
-				}else if(rollRandom<=50){
-					if(CheckActorInventory(who,"ZISniper")==1){
-						Print(s:"10% damage for 30 secondes!");
-						GiveActorInventory(who,"DamageBonus",1);
-					}else{
-					Print(s:"You found a sniper!");
-					GiveActorInventory(who,"ZISniper",1);
-					}
-				}else if(rollRandom<=75){
+				}else if(rollRandom<=45){
 					if(CheckActorInventory(who,"ZISuperShotGun")==1){
 						Print(s:"10% damage for 30 secondes!");
 						GiveActorInventory(who,"DamageBonus",1);
 					}else{
-					Print(s:"You found a SSG!");
-					GiveActorInventory(who,"ZISuperShotGun",1);
+						Print(s:"You found a SSG!");
+						GiveActorInventory(who,"ZISuperShotGun",1);
 					}
-				}else{
-					if(CheckActorInventory(who,"ZIRocketLauncher")==1){
+				}else if(rollRandom<=65){
+					if(CheckActorInventory(who,"ZISniper")==1){
 						Print(s:"10% damage for 30 secondes!");
 						GiveActorInventory(who,"DamageBonus",1);
 					}else{
+						Print(s:"You found a sniper!");
+						GiveActorInventory(who,"ZISniper",1);
+					}
+				}else if(rollRandom<=85){
+					Print(s:"You got a FlareGun!");
+					GiveActorInventory(who,"ZIFlareGun",1);
+				}else if(rollRandom<=95){
 					Print(s:"You found a Rocket Launcher!");
 					GiveActorInventory(who,"ZIRocketLauncher",1);
-					}
+				}else{
+					Print(s:"You found a Railgun!!");
+					GiveActorInventory(who,"ZIRailgun",1);
+					GiveActorInventory(who,"RGEnergy",7000);
 				}
 				break;
 			case 3:
@@ -789,115 +801,18 @@ script 722 (int who,int type){
 				break;
 			case 4:
 				TakeActorInventory(who,"RareBonusCrate",1);
-				if(rollRandom<=5){
-					print(s:"Nothing! :c");
-				}else if(rollRandom<=10){
-					print(s:"Stamina Restock!");
-					GiveActorInventory(who,"StaminaSprint",1200);
-				}else if(rollRandom<=20){
-					Print(s:"10% damage for 30 secondes!");
-					GiveActorInventory(who,"DamageBonus",1);
-				}else if(rollRandom<=30){
-					Print(s:"Additional molotov!");
-					GiveActorInventory(who,"HandGrenadeAmmo",1);
-				}else if(rollRandom<=40){
-					Print(s:"Additional Stunt grenade!");
-					GiveActorInventory(who,"HandExpGrenadeAmmo",1);
-				}else if(rollRandom<=55){
-					if(CheckActorInventory(who,"ZISniper")==1){
-						Print(s:"10% damage for 30 secondes!");
-						GiveActorInventory(who,"DamageBonus",1);
-					}else{
-					Print(s:"You found a sniper!");
-					GiveActorInventory(who,"ZISniper",1);
-					}
-				}else if(rollRandom<=70){
-					if(CheckActorInventory(who,"ZISuperShotGun")==1){
-						Print(s:"10% damage for 30 secondes!");
-						GiveActorInventory(who,"DamageBonus",1);
-					}else{
-					Print(s:"You found a SSG!");
-					GiveActorInventory(who,"ZISuperShotGun",1);
-					}
-				}else if(rollRandom<=85){
-					if(CheckActorInventory(who,"ZIRocketLauncher")==1){
-						Print(s:"10% damage for 30 secondes!");
-						GiveActorInventory(who,"DamageBonus",1);
-					}else{
-					Print(s:"You found a Rocket Launcher!");
-					GiveActorInventory(who,"ZIRocketLauncher",1);
-					}
-				}else{
-					Print(s:"Fall reduction!");
-					GiveActorInventory(who,"BonusFallDamageProtection",1);
-				}
-				break;
-			case 5:
-				TakeActorInventory(who,"UltimateBonusCrate",1);
-				if(rollRandom<=5){
-					Print(s:"10% damage for 30 secondes!");
-					GiveActorInventory(who,"DamageBonus",1);
-				}else if(rollRandom<=10){
-					Print(s:"Additional molotov!");
-					GiveActorInventory(who,"HandGrenadeAmmo",1);
-				}else if(rollRandom<=15){
-					Print(s:"Additional Stunt grenade!");
-					GiveActorInventory(who,"HandExpGrenadeAmmo",1);
-				}else if(rollRandom<=35){
-					if(CheckActorInventory(who,"ZISniper")==1){
-						Print(s:"10% damage for 30 secondes!");
-						GiveActorInventory(who,"DamageBonus",1);
-					}else{
-					Print(s:"You found a sniper!");
-					GiveActorInventory(who,"ZISniper",1);
-					}
-				}else if(rollRandom<=55){
-					if(CheckActorInventory(who,"ZISuperShotGun")==1){
-						Print(s:"10% damage for 30 secondes!");
-						GiveActorInventory(who,"DamageBonus",1);
-					}else{
-					Print(s:"You found a SSG!");
-					GiveActorInventory(who,"ZISuperShotGun",1);
-					}
-				}else if(rollRandom<=75){
-					if(CheckActorInventory(who,"ZIRocketLauncher")==1){
-						Print(s:"10% damage for 30 secondes!");
-						GiveActorInventory(who,"DamageBonus",1);
-					}else{
-					Print(s:"You found a Rocket Launcher!");
-					GiveActorInventory(who,"ZIRocketLauncher",1);
-					}
-				}else if(rollRandom<=90){
-					Print(s:"Fall reduction!");
-					GiveActorInventory(who,"BonusFallDamageProtection",1);
-				}else{
-					if(CheckActorInventory(who,"LeaderSpeed")==1){
-						print(s:"you got 3 Ultimate Bonus Crate!");
-						GiveActorInventory(who,"UltimateBonusCrate",3);
-					}else{
-					PrintBold(n:who-PLAYER_ID+1,s:" is now an ELITE!");
-					GiveActorInventory(who,"LeaderSpeed",1);
-					GiveActorInventory(who,"LeaderDamage",1);
-					}
-				}
-				break;
-			case 6:
-				TakeActorInventory(who,"SurvivorBonusCrate",1);
 				if(rollRandom<=10){
 					Print(s:"10% damage for 30 secondes!");
 					GiveActorInventory(who,"DamageBonus",1);
 				}else if(rollRandom<=20){
-					Print(s:"Fall reduction!");
-					GiveActorInventory(who,"BonusFallDamageProtection",1);
-				}else if(rollRandom<=30){
-					if(CheckActorInventory(who,"ZISuperShotGun")==1){
-						Print(s:"10% damage for 30 secondes!");
-						GiveActorInventory(who,"DamageBonus",1);
+					if(rollRandom%2==0){
+						Print(s:"Additional molotov!");
+						GiveActorInventory(who,"HandGrenadeAmmo",1);
 					}else{
-						Print(s:"You found a SSG!");
-						GiveActorInventory(who,"ZISuperShotGun",1);
+						Print(s:"Additional Stunt grenade!");
+						GiveActorInventory(who,"HandExpGrenadeAmmo",1);
 					}
-				}else if(rollRandom<=40){
+				}else if(rollRandom<=30){
 					if(CheckActorInventory(who,"ZISniper")==1){
 						Print(s:"10% damage for 30 secondes!");
 						GiveActorInventory(who,"DamageBonus",1);
@@ -905,7 +820,117 @@ script 722 (int who,int type){
 						Print(s:"You found a sniper!");
 						GiveActorInventory(who,"ZISniper",1);
 					}
+				}else if(rollRandom<=40){
+					if(CheckActorInventory(who,"ZISuperShotGun")==1){
+						Print(s:"10% damage for 30 secondes!");
+						GiveActorInventory(who,"DamageBonus",1);
+					}else{
+						Print(s:"You found a SSG!");
+						GiveActorInventory(who,"ZISuperShotGun",1);
+					}
 				}else if(rollRandom<=50){
+					Print(s:"You found a Rocket Launcher!");
+					GiveActorInventory(who,"ZIRocketLauncher",1);
+				}else if(rollRandom<=60){
+					Print(s:"You got a FlareGun!");
+					GiveActorInventory(who,"ZIFlareGun",1);
+				}else if(rollRandom<=70){
+					if(CheckActorInventory(who,"LeaderSpeed")==1){
+						print(s:"you got 1 Ultimate Bonus Crate!");
+						GiveActorInventory(who,"UltimateBonusCrate",1);
+					}else{
+						PrintBold(n:who-PLAYER_ID+1,s:" is now an ELITE!");
+						GiveActorInventory(who,"LeaderSpeed",1);
+						GiveActorInventory(who,"LeaderDamage",1);
+					}
+				}else if(rollRandom<=80){
+					Print(s:"Fall reduction!");
+					GiveActorInventory(who,"BonusFallDamageProtection",1);
+				}else if(rollRandom<=90){
+					Print(s:"You got a Suicide Vest!!");
+					GiveActorInventory(who,"SuicideVest",1);
+				}else{
+					print(s:"you got 1 Ultimate Bonus Crate!");
+					GiveActorInventory(who,"RareBonusCrate",3);
+				}
+				break;
+			case 5:
+				TakeActorInventory(who,"UltimateBonusCrate",1);
+				if(rollRandom<=5){
+					Print(s:"10% damage for 30 secondes!");
+					GiveActorInventory(who,"DamageBonus",1);
+				}else if(rollRandom<=20){
+					print(s:"you got 1 Ultimate Bonus Crate!");
+					GiveActorInventory(who,"UltimateBonusCrate",1);
+				}else if(rollRandom<=30){
+					if(CheckActorInventory(who,"ZISniper")==1){
+						Print(s:"10% damage for 30 secondes!");
+						GiveActorInventory(who,"DamageBonus",1);
+					}else{
+						Print(s:"You found a sniper!");
+						GiveActorInventory(who,"ZISniper",1);
+					}
+				}else if(rollRandom<=40){
+					if(CheckActorInventory(who,"ZISuperShotGun")==1){
+						Print(s:"10% damage for 30 secondes!");
+						GiveActorInventory(who,"DamageBonus",1);
+					}else{
+						Print(s:"You found a SSG!");
+						GiveActorInventory(who,"ZISuperShotGun",1);
+					}
+				}else if(rollRandom<=50){
+					Print(s:"You found a Rocket Launcher!");
+					GiveActorInventory(who,"ZIRocketLauncher",1);
+				}else if(rollRandom<=60){
+					Print(s:"You got a FlareGun!");
+					GiveActorInventory(who,"ZIFlareGun",1);
+				}else if(rollRandom<=80){
+					if(CheckActorInventory(who,"LeaderSpeed")==1){
+						print(s:"you got 1 Ultimate Bonus Crate!");
+						GiveActorInventory(who,"RareBonusCrate",3);
+					}else{
+						PrintBold(n:who-PLAYER_ID+1,s:" is now an ELITE!");
+						GiveActorInventory(who,"LeaderSpeed",1);
+						GiveActorInventory(who,"LeaderDamage",1);
+					}
+				}else if(rollRandom<=90){
+					Print(s:"You got a Suicide Vest!!");
+					GiveActorInventory(who,"SuicideVest",1);
+				}else{
+					Print(s:"You found a Railgun!!");
+					GiveActorInventory(who,"ZIRailgun",1);
+					GiveActorInventory(who,"RGEnergy",7000);
+				}
+				break;
+			case 6:
+				TakeActorInventory(who,"SurvivorBonusCrate",1);
+				if(rollRandom<=50){
+					Print(s:"You got Nothing!");
+				}else if(rollRandom<=60){
+					if(CheckActorInventory(who,"ZISuperShotGun")==1){
+						Print(s:"10% damage for 30 secondes!");
+						GiveActorInventory(who,"DamageBonus",1);
+					}else{
+						Print(s:"You found a SSG!");
+						GiveActorInventory(who,"ZISuperShotGun",1);
+					}
+				}else if(rollRandom<=70){
+					if(CheckActorInventory(who,"ZISniper")==1){
+						Print(s:"10% damage for 30 secondes!");
+						GiveActorInventory(who,"DamageBonus",1);
+					}else{
+						Print(s:"You found a sniper!");
+						GiveActorInventory(who,"ZISniper",1);
+					}
+				}else if(rollRandom<=80){
+					if(CheckActorInventory(who,"ZIFlareGun")==1){
+						Print(s:"10% damage for 30 secondes!");
+						GiveActorInventory(who,"DamageBonus",1);
+					}else{
+						Print(s:"You found a flare gun!");
+						GiveActorInventory(who,"ZIFlareGun",1);
+						}
+				}else if(rollRandom<=90){
 					if(CheckActorInventory(who,"ZIRocketLauncher")==1){
 						Print(s:"10% damage for 30 secondes!");
 						GiveActorInventory(who,"DamageBonus",1);
@@ -913,22 +938,10 @@ script 722 (int who,int type){
 						Print(s:"You found a Rocket Launcher!");
 						GiveActorInventory(who,"ZIRocketLauncher",1);
 					}
-				}else if(rollRandom<=60){
-					Print(s:"Nothing! :c");
-				}else if(rollRandom<=70){
-					Print(s:"Nothing! :c");
-				}else if(rollRandom<=80){
-					Print(s:"Nothing! :c");
-				}else if(rollRandom<=90){
-					Print(s:"Nothing! :c");
 				}else{
-					if(rollRandom%2==0){
-						Print(s:"You found a Railgun??");
+						Print(s:"You found a Railgun!!");
 						GiveActorInventory(who,"ZIRailgun",1);
 						GiveActorInventory(who,"RGEnergy",7000);
-					}else{
-						Print(s:"Nothing! :c");
-					}
 				}
 				break;
 		}
@@ -1031,7 +1044,7 @@ Script 728 (void) NET {
 
 script 729(void)NET{
 	int IP_ID=ActivatorTID();
-	int type=random(0,7);
+	int type=random(0,11);
 	switch(type){
 		case 0:
 			PlaySound(IP_ID,"Player/Taunt/OMG",6,1.0,0,1.0);
@@ -1056,6 +1069,18 @@ script 729(void)NET{
 			break;
 		case 7:
 			PlaySound(IP_ID,"Player/Taunt/Balls",6,1.0,0,1.0);
+			break;
+		case 8:
+			PlaySound(IP_ID,"Player/Taunt/Space",6,1.0,0,1.0);
+			break;
+		case 9:
+			PlaySound(IP_ID,"Player/Taunt/EHOH",6,1.0,0,1.0);
+			break;
+		case 10:
+			PlaySound(IP_ID,"Player/Taunt/EHOHOHOH",6,1.0,0,1.0);
+			break;
+		case 11:
+			PlaySound(IP_ID,"Player/Taunt/AngryChinese",6,1.0,0,1.0);
 			break;
 	}
 }
