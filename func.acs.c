@@ -410,13 +410,24 @@ function void cleanInventory(int TypeOfWork,int player){
 			TakeActorInventory(i+PLAYER_ID,"HandGrenadeAmmo",2);
 			TakeActorInventory(i+PLAYER_ID,"HandExpGrenadeAmmo",2);	
 			TakeActorInventory(i+PLAYER_ID,"Armor",10000);	
+			TakeActorInventory(i+PLAYER_ID,"SuicideVest",1);	
 			//Zombie Stuff
 			TakeActorInventory(i+PLAYER_ID,"IsZombie",1); 
 			TakeActorInventory(i+PLAYER_ID,"ZombieImmune",1);
+			TakeActorInventory(i+PLAYER_ID,"FastZombieImmune",1);
+			TakeActorInventory(i+PLAYER_ID,"HeavyZombieImmune",1);
 			TakeActorInventory(i+PLAYER_ID,"ZombieSecondaryCoolDown",9999);
+			TakeActorInventory(i+PLAYER_ID,"IsFastZombie",1);
+			TakeActorInventory(i+PLAYER_ID,"IsHeavyZombie",1);
+			TakeActorInventory(i+PLAYER_ID,"IsSpotterZombie",1);
+			TakeActorInventory(i+PLAYER_ID,"IsCommonZombie",1);
 			TakeActorInventory(i+PLAYER_ID,"IsMotherZombie",1);
 			TakeActorInventory(i+PLAYER_ID,"IsZF",1); 
 			TakeActorInventory(i+PLAYER_ID,"ZombieHands",1);
+			TakeActorInventory(i+PLAYER_ID,"ZombieHandsCommon",1);
+			TakeActorInventory(i+PLAYER_ID,"ZombieHandsFast",1);
+			TakeActorInventory(i+PLAYER_ID,"ZombieHandsHeavy",1);
+			TakeActorInventory(i+PLAYER_ID,"ZombieHandsSpotter",1);
 			TakeActorInventory(i+PLAYER_ID,"TPChecker",3);
 			TakeActorInventory(i+PLAYER_ID,"IsBurning",1);
 			TakeActorInventory(i+PLAYER_ID,"BurningSpeed",1);
@@ -439,10 +450,13 @@ function void cleanInventory(int TypeOfWork,int player){
 			SetActorProperty(i+PLAYER_ID, APROP_SPEED, 1.0);		
 			SetActorProperty(i+PLAYER_ID,APROP_Health,100); 
 			SetActorProperty(i+PLAYER_ID,APROP_Invulnerable,OFF);
+			SetActorProperty(i+PLAYER_ID,APROP_Mass,50); //Reset it to normal (not 100)
+			
 		}
 	}else{
 			//Human Stuff
 			TakeActorInventory(player+PLAYER_ID,"Armor",10000);	
+			TakeActorInventory(player+PLAYER_ID,"SuicideVest",1);	
 			TakeActorInventory(player+PLAYER_ID,"IsHuman",1); 
 			TakeActorInventory(player+PLAYER_ID,"HumanImmune",1);
 			TakeActorInventory(player+PLAYER_ID,"HasPanicked",1);
@@ -461,10 +475,20 @@ function void cleanInventory(int TypeOfWork,int player){
 			//Zombie Stuff
 			TakeActorInventory(player+PLAYER_ID,"IsZombie",1); 
 			TakeActorInventory(player+PLAYER_ID,"ZombieImmune",1);
+			TakeActorInventory(player+PLAYER_ID,"FastZombieImmune",1);
+			TakeActorInventory(player+PLAYER_ID,"HeavyZombieImmune",1);
 			TakeActorInventory(player+PLAYER_ID,"ZombieSecondaryCoolDown",9999);
+			TakeActorInventory(player+PLAYER_ID,"IsCommonZombie",1);
+			TakeActorInventory(player+PLAYER_ID,"IsFastZombie",1);
+			TakeActorInventory(player+PLAYER_ID,"IsHeavyZombie",1);
+			TakeActorInventory(player+PLAYER_ID,"IsSpotterZombie",1);
 			TakeActorInventory(player+PLAYER_ID,"IsMotherZombie",1);
 			TakeActorInventory(player+PLAYER_ID,"IsZF",1); 
-			TakeActorInventory(player+PLAYER_ID,"ZombieHands",1);
+			TakeActorInventory(player+PLAYER_ID,"ZombieHands",1);//Mother hand
+			TakeActorInventory(player+PLAYER_ID,"ZombieHandsCommon",1);
+			TakeActorInventory(player+PLAYER_ID,"ZombieHandsFast",1);
+			TakeActorInventory(player+PLAYER_ID,"ZombieHandsHeavy",1);
+			TakeActorInventory(player+PLAYER_ID,"ZombieHandsSpotter",1);
 			TakeActorInventory(player+PLAYER_ID,"TPChecker",3);
 			TakeActorInventory(player+PLAYER_ID,"IsBurning",1);
 			TakeActorInventory(player+PLAYER_ID,"BurningSpeed",1);
@@ -487,6 +511,7 @@ function void cleanInventory(int TypeOfWork,int player){
 			SetActorProperty(player+PLAYER_ID, APROP_SPEED, 1.0);		
 			SetActorProperty(player+PLAYER_ID,APROP_Health,100); 
 			SetActorProperty(player+PLAYER_ID,APROP_Invulnerable,OFF);
+			SetActorProperty(player+PLAYER_ID,APROP_Mass,50);
 	}
 }
 
@@ -506,6 +531,7 @@ function void inventoryStarter(int TypeOfWork,int player){
 			GiveActorInventory(i+PLAYER_ID,"ZIShells",7);
 			GiveActorInventory(i+PLAYER_ID,"ZIRifle",1);
 			GiveActorInventory(i+PLAYER_ID,"ZIRifleAmmo",35);
+			GiveActorInventory(i+PLAYER_ID,"InfectProtection",2);
 		}
 	}else{
 			GiveActorInventory(player+PLAYER_ID,"GreenArmor",1);
@@ -521,6 +547,7 @@ function void inventoryStarter(int TypeOfWork,int player){
 			GiveActorInventory(player+PLAYER_ID,"ZIShells",7);
 			GiveActorInventory(player+PLAYER_ID,"ZIRifle",1);
 			GiveActorInventory(player+PLAYER_ID,"ZIRifleAmmo",35);
+			GiveActorInventory(player+PLAYER_ID,"InfectProtection",2);
 	}
 }
 //--- MAP TYPES || 1 == ZF ||2 == ZR
@@ -650,117 +677,177 @@ function void ZombieStarter (void)
 /*		 Function called by item, switch or by an admin to infect a human
 		 First: Is he MotherZombie?							
 		 Infector: Infector TID	 !!! (not the playernumber)					*/
-int incrementator=0;
+int incrementator=0;//this is for the infect message on the y-axis value shifter
+int MinusTIDSpawner=0;//This is for ZF maps, to prevent telefuck at spawn, very important now that we have classes
+
+//Activator is the infected
 function void MakeZombie (int player,int first,int infector,int nomessage)
 {
 	if(player==0){
 		printBold(s:"BUG! Please Report MKZ=0");
 	}else{
-		int HealthToGive;
-		int HealthInfector = GetActorProperty(infector,APROP_Health);
-		
-		if(HealthInfector<ZombieMinimumHealth){
-		 HealthInfector=ZombieMinimumHealth;
-		}
-		
-		if(first==1){
-			HealthToGive=Random(MotherZombieMinHealth,MotherZombieMaxHealth);
-			GiveActorInventory(player,"IsMotherZombie",1);
-		}else if(nomessage==1){
-			HealthToGive=ZombieMinimumHealth+Random(0,1000);
+		if(checkActorInventory(player,"InfectProtection")>0 && first>1){ //So if the target player has still "lives"
+			//PlayerScratchResist[player-PLAYER_ID]--;
+			takeActorInventory(player,"InfectProtection",1);
+			GiveActorInventory(player,"TryInfectSpeed",1);
+			//Do the Blood HUD FFS! DONE VIA THE PLAYER DECORATE(2021.04.17)
+			ActivatorSound("HUMANPAI", 127); //TODO add female sound
 		}else{
-			if(infector==0){
-				HealthToGive=Clip(ZombieMinimumHealth,ZombieMaximumHealth, ((MotherZombieMinHealth+ZombieMinimumHealth)/2)+random(-500,500));
-			}else{
-				HealthToGive=Clip(ZombieMinimumHealth,ZombieMaximumHealth, ((HealthInfector+ZombieMaximumHealth)/3)+random(-800,800));
+		
+			int HealthToGive;
+			int HealthInfector = GetActorProperty(infector,APROP_Health);
+			
+			if(HealthInfector<ZombieMinimumHealth){
+			 HealthInfector=ZombieMinimumHealth;
 			}
-		}
+			
+			if(first==1){
+				HealthToGive=Random(MotherZombieMinHealth,MotherZombieMaxHealth);
+				//GiveActorInventory(player,"IsMotherZombie",1); (2021.04.01)
+			}else if(nomessage==1){
+				HealthToGive=ZombieMinimumHealth+Random(0,1000);
+			}else{
+				if(infector==0){
+					HealthToGive=Clip(ZombieMinimumHealth,ZombieMaximumHealth, ((MotherZombieMinHealth+ZombieMinimumHealth)/2)+random(-500,500));
+				}else{
+					HealthToGive=Clip(ZombieMinimumHealth,ZombieMaximumHealth, ((HealthInfector+ZombieMaximumHealth)/3)+random(-800,800));
+				}
+			}
 
-		
-		if(first==0 && nomessage==0){
-			acs_executeAlways(706,0,player,checkActorInventory(player,"HandGrenadeAmmo"),0);
-			acs_executeAlways(706,0,player,checkActorInventory(player,"HandExpGrenadeAmmo"),1);
-			if(nomessage==0){SpawnProjectile(player, "ZombieFlame", 0, 0, 0, 0, 0);
+			
+			if(first==0 && nomessage==0){
+				acs_executeAlways(706,0,player,checkActorInventory(player,"HandGrenadeAmmo"),0);
+				acs_executeAlways(706,0,player,checkActorInventory(player,"HandExpGrenadeAmmo"),1);
+				if(nomessage==0){SpawnProjectile(player, "ZombieFlame", 0, 0, 0, 0, 0);
+				}
 			}
-		}
-		cleanInventory(1,player-PLAYER_ID);
-				
-		//SetActorProperty(player,APROP_Health,500); 
-		if(getSuicideState(player)==1){
-			HealthToGive=getHealthBeforeSuicide(player);
-			setSuicideState(player,0);
-		}
-		
-		ACS_ExecuteAlways(725,0,player,HealthToGive); 
-		
-		
-		TakeActorInventory(player,"ZISuperShotgun",1);
-		TakeActorInventory(player,"ZISniper",1);
-		TakeActorInventory(player,"ZIRailgun",1);
-		TakeActorInventory(player,"RGEnergy",7000);
-		TakeActorInventory(player,"ZIFlareGun",1);
-		TakeActorInventory(player,"ZIFireFlare",5);		
-		TakeActorInventory(player,"ZIRocketLauncher",1);
-		TakeActorInventory(player,"HandGrenadeAmmo",2);
-		TakeActorInventory(player,"HandExpGrenadeAmmo",2);
-		thing_remove(500+player); //Remove Leader symbol
-		
-		SetActorProperty(player, APROP_SPEED, 1.10);
-		GiveActorInventory(player,"IsZombie",1);
-		GiveActorInventory(player,"ZombieImmune",1);
-		GiveActorInventory(player,"ZombieHands",1);
-		GiveActorInventory(player,"TPChecker",3);
-		//reward zombie for infection with less cooldown for spit
-		if(GetMapType()==2){
-			GiveActorInventory(infector,"ZombieSecondaryCoolDown",300);
-			incrementStats(3,infector);
-		}
-		if(GetMapType()==1){
-			GiveActorInventory(player,"IsZF",1);
-		}
-		
-		
-		
-		//Effect todo
-		Playsound(player,"Player/Infected",5);
-		HumanCounter();//So we update those value server side, so we can send it after to the client via 903
-		ZombieCounter();
-		SetFont("SMALLFONT");
-		
-		int type;
-		if(first==1)
-		{
-			if(GetTotalZombieAtStart()>4){
-				type=2;
+			cleanInventory(1,player-PLAYER_ID);
+					
+			//SetActorProperty(player,APROP_Health,500); 
+			if(getSuicideState(player)==1){
+				HealthToGive=getHealthBeforeSuicide(player);
+				setSuicideState(player,0);
+			}
+			
+			
+			
+			TakeActorInventory(player,"InfectProtection",2);//just to be sure
+			TakeActorInventory(player,"ZISuperShotgun",1);
+			TakeActorInventory(player,"ZISniper",1);
+			TakeActorInventory(player,"ZIRailgun",1);
+			TakeActorInventory(player,"RGEnergy",7000);
+			TakeActorInventory(player,"ZIFlareGun",1);
+			TakeActorInventory(player,"ZIFireFlare",5);		
+			TakeActorInventory(player,"ZIRocketLauncher",1);
+			TakeActorInventory(player,"HandGrenadeAmmo",2);
+			TakeActorInventory(player,"HandExpGrenadeAmmo",2);
+			thing_remove(500+player); //Remove Leader symbol
+			
+			
+			GiveActorInventory(player,"IsZombie",1);
+			
+			
+			GiveActorInventory(player,"TPChecker",3);
+			if(first==1){
+				GiveActorInventory(player,"IsMotherZombie",1);
+				GiveActorInventory(player,"ZombieHands",1);
+				GiveActorInventory(player,"ZombieImmune",1);
+				SetActorProperty(player, APROP_SPEED, MOTHERZOMBIESPEED);
+				SetActorProperty(player, APROP_Mass, 75);
 			}else{
-				type=1;
+				int classRandom=random(0,99);
+				if(classRandom<=55){
+					GiveActorInventory(player,"IsCommonZombie",1);
+					GiveActorInventory(player,"ZombieHandsCommon",1);
+					GiveActorInventory(player,"ZombieImmune",1);
+					SetActorProperty(player, APROP_SPEED, ZOMBIESPEED);
+				}else if(classRandom<=70){
+					GiveActorInventory(player,"IsFastZombie",1);
+					GiveActorInventory(player,"ZombieHandsFast",1);
+					GiveActorInventory(player,"FastZombieImmune",1);
+					SetActorProperty(player, APROP_SPEED, FASTZOMBIESPEED);
+					SetActorProperty(player, APROP_Mass, 85);//Needs to be higher, because it's immunity is weaker, so bigger knockback, so kinda "balance" enough the knockback
+					HealthToGive=(HealthToGive*0.5)>>16;
+				
+				}else if(classRandom<=85){//Heavy
+					GiveActorInventory(player,"IsHeavyZombie",1);
+					GiveActorInventory(player,"ZombieHandsHeavy",1);
+					GiveActorInventory(player,"HeavyZombieImmune",1);
+					SetActorProperty(player, APROP_SPEED, HEAVYZOMBIESPEED);
+					SetActorProperty(player, APROP_Mass, 150);
+					HealthToGive=(HealthToGive*1.5)>>16;
+				}else{//Spotter
+					GiveActorInventory(player,"IsSpotterZombie",1);
+					GiveActorInventory(player,"ZombieHandsSpotter",1);
+					GiveActorInventory(player,"ZombieImmune",1);
+					SetActorProperty(player, APROP_SPEED, ZOMBIESPEED);
+				}
 			}
-		}else{
-			type=3;
+			
+			ACS_ExecuteAlways(725,0,player,HealthToGive); 
+			
+			//reward zombie for infection with less cooldown for spit
+			if(GetMapType()==2){
+				GiveActorInventory(infector,"ZombieSecondaryCoolDown",300);
+				incrementStats(3,infector);
+			}
+			if(GetMapType()==1){
+				GiveActorInventory(player,"IsZF",1);
+			}
+			
+			
+			
+			//Effect todo
+			Playsound(player,"Player/Infected",5);
+			HumanCounter();//So we update those value server side, so we can send it after to the client via 903
+			ZombieCounter();
+			SetFont("SMALLFONT");
+			
+			int type;//For HUD C/S
+			if(first==1)
+			{
+				if(GetTotalZombieAtStart()>4){
+					type=2;
+				}else{
+					type=1;
+				}
+			}else{
+				type=3;
+			}
+			
+			if(nomessage==1){
+				type=0;
+			}
+			if(first==1){
+				SetActivator(player);//well it should not change anything, im pretty sure going back to the server as activator is a bad idea
+				if(GetMapType()==1){Teleport_NoFog(ZombieTID+MinusTIDSpawner,1,0,0);}
+				SetActivator(-1);//go back to server
+			}
+			Acs_executeAlways(900,0,7,GetHumanNumber());//We send them directly to the client, no need to reupdate it server-wise
+			Acs_executeAlways(900,0,8,GetZombieNumber());
+			
+			//Display The infect message
+			int y = 0.525+(0.03*incrementator);
+			int compressedTID;//contain both TID
+			compressedTID=(infector-PLAYER_ID);
+			compressedTID=compressedTID<<8;
+			compressedTID+=(player-PLAYER_ID);
+			
+			ACS_ExecuteAlways(802,0,compressedTID,y,type);
+			incrementator++;
+			if(incrementator>=6){
+				incrementator=0;
+			}
+			
+			MinusTIDSpawner--;
 		}
-		
-		if(nomessage==1){
-			type=0;
-		}
-		if(first==1){
-			SetActivator(player);
-			if(GetMapType()==1){Teleport_NoFog(ZombieTID,1,0,0);}
-			SetActivator(-1);//go back to server
-		}
-		Acs_executeAlways(900,0,7,GetHumanNumber());//We send them directly to the client, no need to reupdate it server-wise
-		Acs_executeAlways(900,0,8,GetZombieNumber());
-		
-		//Display The infect message
-		int y = 0.525+(0.03*incrementator);
-		int compressedTID;//contain both TID
-		compressedTID=(infector-PLAYER_ID);
-		compressedTID=compressedTID<<8;
-		compressedTID+=(player-PLAYER_ID);
-		
-		ACS_ExecuteAlways(802,0,compressedTID,y,type);
-		incrementator++;
-		if(incrementator>=6){
-			incrementator=0;
+	}
+}
+
+function void killHumans(void){
+	for(int i=0;i<64;i++){
+		if(CheckActorInventory(i+PLAYER_ID,"IsHuman")==1){
+			Thing_Damage(i+PLAYER_ID, 99999, 19);
 		}
 	}
 }
@@ -795,4 +882,13 @@ function int getCountDownStatus(void){
 
 function void setCountDownStatus(int a){
 	countDownStatus=a;
+}
+
+function void ClearOnDeathSpecialItems(int a){
+	TakeActorInventory(a+PLAYER_ID,"ZISuperShotgun",1);
+	TakeActorInventory(a+PLAYER_ID,"ZISniper",1);
+	TakeActorInventory(a+PLAYER_ID,"ZIFlareGun",1);
+	TakeActorInventory(a+PLAYER_ID,"ZIFireFlare",5);		
+	TakeActorInventory(a+PLAYER_ID,"ZIRocketLauncher",1);
+	TakeActorInventory(a+PLAYER_ID,"ZIRailgun",1);
 }
