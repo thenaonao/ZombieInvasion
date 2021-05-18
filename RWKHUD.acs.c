@@ -83,11 +83,8 @@ bool alreadyShowed = false;//(2021.01.12)
 script 802 (int CompressedTID,int y,int type) CLIENTSIDE{
 	delay(1);//This is some patchwork, but yea, this script was faster than functions.
 	SetFont("SMALLFONT");
-	int infected=0;
-	int infector=0;
-	//Decode
-	infector=CompressedTID>>8;
-	infected=CompressedTID-(infector<<8);
+	int infector=CompressedTID>>8;
+	int infected=CompressedTID-(infector<<8);
 	infector++;//For n: ->(1;64) and here we have (0;63)
 	infected++;
 	int x= 0.5;	
@@ -122,4 +119,9 @@ script 804 ENTER CLIENTSIDE{
 script 806(void) CLIENTSIDE{
 	SETFONT("HUDSTUNT");
 	HudMessage(s:"A"; HUDMSG_FADEINOUT, 306, CR_UNTRANSLATED, 0.5, 0.5, 0.5,0.5, 2.0);
+}
+
+script 807(void) CLIENTSIDE{
+	SETFONT("HUDINFEC");
+	HudMessage(s:"A"; HUDMSG_FADEINOUT, 306, CR_UNTRANSLATED, 0.5, 0.5, 0.5,0.5, 0.75);
 }
