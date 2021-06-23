@@ -262,6 +262,16 @@ function int abs(int a)
 	return a;
 }
 
+function int sq(int a){
+	return a*a;
+}
+
+//Takes an Fixed , but output an INT!!
+function int fixed_sq(int a){
+	return fixedmul(a,a);
+}
+
+
 int randTab[100];
 function void AwardPlayer(int who){
 	if(who<PLAYER_ID){
@@ -309,8 +319,55 @@ function void AwardPlayer(int who){
 			break;
 	}
 }
+//We use fixed
+function int ThreeD_Dist(int x,int y,int z){
+	return sqrt(x*x+y*y+z*z);
+}
+function int TwoD_Dist(int x,int y){
+	return VectorLength(x,y)>>16;
+}
 
- 
+//We use fixed
+function int DotProduct(int x1,int y1,int x2,int y2){
+	int ret=( fixed_sq(TwoD_Dist(x1+x2,y1+y2))-fixed_sq(TwoD_Dist(x1,y1))-fixed_sq(TwoD_Dist(x2,y2)))/2;
+	return ret;
+}
+
+//Input is Fixed
+function int arccos(int a){
+	if( abs(a)==1.0){
+		return fixeddiv((1.0-a)*PI,2.0);
+	}
+	return arctan(fixeddiv(-a,Fixedsqrt(1.0-fixed_sq(a)) ) )+ 2*arctan(1.0);
+}
+//input: fixed
+//we use fucking radians please!!
+function int arctan(int a){
+	int ret=0;
+	if(a<0){//If its negative, because it  doesnt support.... LOL so we take the opposite, and return the opposite again...
+		ret = VectorAngle(1.0,-a);
+		ret=fixedmul(ret,2*PI);//To rad
+		return -ret;
+	}
+	ret = VectorAngle(1.0,a);
+	ret=fixedmul(ret,2*PI);//To rad
+	return ret;
+}
+
+function int principal_angle(int a){
+	while(a<0){
+		a+=2*PI;
+	}
+	return a;
+}
+
+ //We use fixed
+ //Dist=dist between each player on x,y plane
+function int ComputePitch(int dist,int z1,int z2){
+	int z_diff = z2-z1;
+	int ret=fixeddiv(z_diff,dist);
+	return arctan(ret);
+}
 //---------------------------------For stats----------------------------------//
 function void setStats(int what, int who,int value){
 	if(who>=PLAYER_ID){
@@ -687,7 +744,6 @@ function void MakeZombie (int player,int first,int infector,int nomessage)
 		printBold(s:"BUG! Please Report MKZ=0");
 	}else{
 		if(checkActorInventory(player,"InfectProtection")>0 && first>1){ //So if the target player has still "lives"
-			//PlayerScratchResist[player-PLAYER_ID]--;
 			takeActorInventory(player,"InfectProtection",1);
 			GiveActorInventory(player,"TryInfectSpeed",1);
 			//Do the Blood HUD FFS! DONE VIA THE PLAYER DECORATE(2021.04.17)
@@ -714,12 +770,10 @@ function void MakeZombie (int player,int first,int infector,int nomessage)
 				}
 			}
 
-			
-			if(first==0 && nomessage==0){
+			if(first!=1 && nomessage==0){ //So if its not a MotherZombie, and message will be displayed, so an normal infect.
 				acs_executeAlways(706,0,player,checkActorInventory(player,"HandGrenadeAmmo"),0);
 				acs_executeAlways(706,0,player,checkActorInventory(player,"HandExpGrenadeAmmo"),1);
-				if(nomessage==0){SpawnProjectile(player, "ZombieFlame", 0, 0, 0, 0, 0);
-				}
+				SpawnProjectile(player, "ZombieFlame", 0, 0, 0, 0, 0);
 			}
 			cleanInventory(1,player-PLAYER_ID);
 					
@@ -753,7 +807,7 @@ function void MakeZombie (int player,int first,int infector,int nomessage)
 				GiveActorInventory(player,"ZombieHands",1);
 				GiveActorInventory(player,"ZombieImmune",1);
 				SetActorProperty(player, APROP_SPEED, MOTHERZOMBIESPEED);
-				SetActorProperty(player, APROP_Mass, 75);
+				SetActorProperty(player, APROP_Mass, 90);
 			}else{
 				int classRandom=random(0,99);
 				if(classRandom<=55){
@@ -766,7 +820,7 @@ function void MakeZombie (int player,int first,int infector,int nomessage)
 					GiveActorInventory(player,"ZombieHandsFast",1);
 					GiveActorInventory(player,"FastZombieImmune",1);
 					SetActorProperty(player, APROP_SPEED, FASTZOMBIESPEED);
-					SetActorProperty(player, APROP_Mass, 85);//Needs to be higher, because it's immunity is weaker, so bigger knockback, so kinda "balance" enough the knockback
+					SetActorProperty(player, APROP_Mass, 95);//Needs to be higher, because it's immunity is weaker, so bigger knockback, so kinda "balance" enough the knockback
 					HealthToGive=(HealthToGive*0.5)>>16;
 				
 				}else if(classRandom<=85){//Heavy
