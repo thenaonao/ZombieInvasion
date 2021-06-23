@@ -59,8 +59,6 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 		}		
 		delay(25);
 	}
-	//[DEPRECATED]
-	//ACS_Execute(711,0);//For Infect Message, Maybe I will redo this code But for the moment it works
 	//If its ZR, we send the timer data to the clients (and server)
 	if(type==2){
 		ACS_Execute(903,0,6,ZombieImmuneTime);
@@ -141,13 +139,6 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 				EndMap(0);
 				break;
 			}
-			/*if(nbrZom>0 && nbrHum==1){ //heartbeat OLD
-				for(int j =0;j<64;j++){
-					if(CheckActorInventory(j+PLAYER_ID,"IsHuman") && PlayerInGame(j)){
-						acs_execute(719,0,j,0,0);
-					}
-				}
-			}*/
 			if(nbrZom>nbrHum){ //HeartBeat NEW
 				acs_execute(719,0,nbrHum,nbrZom);
 			}
@@ -200,11 +191,12 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 			delay(5);
 		}*/
 		if(ZombieCounter()==0 && HumanCounter()==0){
-			/* Do nothing
+			/* Do nothing -- Un comment if ZH behaviour of failing map is wanted....
 			Printbold(s:"uh? Everyone died ?????");
 			setWinState(-1);
 			delay(35*2);
 			ResetMap();*/
+			Acs_ExecuteAlways(903,0,11,2);//print Zombie win, because it's the case!
 		}else if(ZombieCounter()==0){
 			//PrintBold(s:"Human Victory");
 			//setWinState(1);
@@ -227,17 +219,24 @@ script 700 (int type,int SecureTime,int ZombieImmuneTime)
 	//Reward player who finished a ZF map.
 	int BRewarded;//ITs a bool to check if someone got rewarded or not.
 	int PlayerCountToReward=Random(0,PlayerCount()-1);//GET a player ID to then get his TID
-	for(int tries=0;tries<64;tries++){
-		if(GetSafePlayer(PlayerCountToReward)==1){
-			BRewarded=1;
-			AwardPlayer(PlayerCountToReward);
-			Log(s:"Tried Awarding"); 
-			Log(n:PlayerCountToReward+1);
-			break;
+	if(currentMapType==1){
+		for(int tries=0;tries<64;tries++){
+			if(GetSafePlayer(PlayerCountToReward)==1){
+				BRewarded=1;
+				AwardPlayer(PlayerCountToReward);
+				Log(s:"Tried Awarding"); 
+				Log(n:PlayerCountToReward+1);
+				break;
+			}	
+			PlayerCountToReward=Random(0,PlayerCount()-1);
 		}
-		PlayerCountToReward=Random(0,PlayerCount()-1);
+	}else if(currentMapType==2){
+		for(int pID=0;pID<64;pID++){
+			if(CheckActorInventory(pID+PLAYER_ID,"IsHuman")==1){
+				AwardPlayer(pID);
+			}
+		}
 	}
-	
 	if(!BRewarded){
 		for(int z=0;z<64;z++){ //If they are safe, reward them 
 			if(GetSafePlayer(z)==1){ //TODO Check if its accurate
@@ -415,7 +414,9 @@ Script 707 (void)
 //Zombie hand script called
 script 708(int player,int infector,int type){
 	if(player==0){Log(s:"BUG! REPORT: P=0"); terminate;}
-	MakeZombie(player,type,infector,0);
+	MakeZombie(player,type,infector,0); //Legacy of the first ZI build, type is "IsFirst" so it was a boolean (0 or 1); Somehow, it began being 
+	//an int, So the value should look like 0 or 1 or 3 ???? lmaoo
+	//It should be between 0 or 1, but now, it can carry a bit more information ? XD
 }
 
 script 709 OPEN NET CLIENTSIDE{
@@ -429,13 +430,13 @@ script 710 (void){
 			if(CheckActorInventory(i+PLAYER_ID,"IsHuman")==1){
 				GiveActorInventory(i+PLAYER_ID,"RGEnergy",35);
 			}else if(CheckActorInventory(i+PLAYER_ID,"IsZombie")==1){
-				if(GetMapType()==2){ // 2021.02.23 if its not an escape map
+				//if(GetMapType()==2){ // 2021.02.23 if its not an escape map //NEW 2021.06.18 NOW with classes, so even in ZF they can special!
 					if(CheckActorInventory(i+PLAYER_ID,"IsMotherZombie")==1){
 						GiveActorInventory(i+PLAYER_ID,"ZombieSecondaryCoolDown",70);
 					}else{
 						GiveActorInventory(i+PLAYER_ID,"ZombieSecondaryCoolDown",35);
 					}
-				}
+				//}
 			}
 		}
 		delay(35);
@@ -680,7 +681,7 @@ script 722 (int who,int type){
 			GiveActorInventory(who,"NightVision",1);
 		}//Night Vision
 		else if(rollRandom<=84){
-			Print(s:"Instant Spit!");
+			Print(s:"Instant Special!");
 			GiveActorInventory(who,"ZombieSecondaryCoolDown",3000);
 		}// Spit
 		else{
@@ -1044,7 +1045,7 @@ Script 728 (void) NET {
 
 script 729(void)NET{
 	int IP_ID=ActivatorTID();
-	int type=random(0,11);
+	int type=random(0,12);
 	switch(type){
 		case 0:
 			PlaySound(IP_ID,"Player/Taunt/OMG",6,1.0,0,1.0);
@@ -1082,8 +1083,17 @@ script 729(void)NET{
 		case 11:
 			PlaySound(IP_ID,"Player/Taunt/AngryChinese",6,1.0,0,1.0);
 			break;
+			
+		case 12:
+			PlaySound(IP_ID,"Player/Taunt/Inches",6,1.0,0,1.0);
+			break;
 	}
 }
+
+
+
+
+
 
 
 
